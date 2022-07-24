@@ -31,4 +31,11 @@ public class TraceId {
     public boolean isFirstLevel(){
         return level == 0;
     }
+
+    public String getId(){
+        return id;
+    }
+    public int getLevel(){
+        return level;
+    }
 }
