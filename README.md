@@ -77,39 +77,61 @@
 
 #### HelloTraceV1
 - HelloTraceV1을 사용해서 실제 로그를 시작하고 종료할 수 있다. 그리고 로그를 출력하고 실행시간도 측정할 수 있다.
-- 공개 메서드 - 로그 추적기에서 사용되는 공개 메서드는 다음 3가지이다.
+
+#### 공개 메서드 - 로그 추적기에서 사용되는 공개 메서드는 다음 3가지이다.
   - begin(..)
   - end(..)
   - exception(..)
-  
-- TraceStatus begin(String message)
-  - 로그를 시작한다.
-  - 로그 메시지를 파라미터로 받아서 시작 로그를 출력한다.
-  - 응답 결과로 현재 로그의 상태인 TraceStatus를 반환한다.
-- void end(TraceStatus status)
-  - 로그를 정상 종료한다.
-  - 파라미터로 시작 로그의 상태(TraceStatus)를 전달받는다. 이 값을 확용해서 실행 시간을 계산하고, 종료일에도 시작할 때와 동일한 로그 메시지를 출력할 수 있다.
-  - 정상 흐름에서 호출한다.
-- void exception(TraceStatus status, Exception e)
-  - 로그를 예외 상황으로 종료한다.
-  - TraceStatus, Exception 정보를 함께 전달 받아서 실행시간, 예외 정보를 포함한 결과 로그를 출력한다.
-  - 예외가 발생했을 때 호출한다.
-  
-- 비공개 메서드
-  - complete(TraceStatus status, Exception e)
-    - end(), exception()의 요청 흐름을 한곳에서 편리하게 처리한다. 실행 시간을 측정하고 로그를 남긴다.
-  - String addSpace(String prefix, int level): 다음과 같은 결과를 출력한다.
-    ```
-    prefix: -->
-      level 0:
-      level 1: |-->
-      level 2: | |-->
-    prefix: <--
-      level 0:
-      level 1: |<--
-      level 2: | |<--
-    prefix: <X-
-      level 0:
-      level 1: |<X-
-      level 2: | |<X-
-    ```
+     
+
+  - TraceStatus begin(String message)
+    - 로그를 시작한다.
+    - 로그 메시지를 파라미터로 받아서 시작 로그를 출력한다.
+    - 응답 결과로 현재 로그의 상태인 TraceStatus를 반환한다.
+  - void end(TraceStatus status)
+    - 로그를 정상 종료한다.
+    - 파라미터로 시작 로그의 상태(TraceStatus)를 전달받는다. 이 값을 확용해서 실행 시간을 계산하고, 종료일에도 시작할 때와 동일한 로그 메시지를 출력할 수 있다.
+    - 정상 흐름에서 호출한다.
+  - void exception(TraceStatus status, Exception e)
+    - 로그를 예외 상황으로 종료한다.
+    - TraceStatus, Exception 정보를 함께 전달 받아서 실행시간, 예외 정보를 포함한 결과 로그를 출력한다.
+    - 예외가 발생했을 때 호출한다.
+
+#### 비공개 메서드
+- complete(TraceStatus status, Exception e)
+  - end(), exception()의 요청 흐름을 한곳에서 편리하게 처리한다. 실행 시간을 측정하고 로그를 남긴다.
+- String addSpace(String prefix, int level): 다음과 같은 결과를 출력한다.
+  ```
+  prefix: -->
+    level 0:
+    level 1: |-->
+    level 2: | |-->
+  prefix: <--
+    level 0:
+    level 1: |<--
+    level 2: | |<--
+  prefix: <X-
+    level 0:
+    level 1: |<X-
+    level 2: | |<X-
+  ```
+    
+### 로그 추적기 V2 - 파라미터로 동기화 개발
+- 트랜잭션ID와 메서드 호출의 깊이를 표현하는 가장 단순한 방법은 첫 로그에서 사용한 트랜잭션ID와 level을 다음 로그에 넘겨주면 된다.
+- 현재 로그의 상태 정보인 트랜잭션ID와 level은 TraceId에 포함되어 있다. 따라서 TraceId를 다음 로그에 넘겨주면 된다.
+#### beginSync(..)
+- 기존 TraceId에서 createNextId()를 통해 다음 ID를 구한다.
+- createNextId()의 TraceId 생성 로직은 다음과 같다.
+  - 트랜잭션ID는 기존과 같이 유지한다.
+  - 깊이를 표현하는 Level은 하나 증가한다. (0 -> 1)
+
+- 처음에는 begin(..)을 사용하고, 이후에는 beginSync(..)를 사용하면 된다. beginSync(..)를 호출할 때 직전 로그의 traceId 정보를 넘겨주어야 한다.
+
+#### begin_end_level2()- 실행로그
+```
+[0314baf6] hello1
+[0314baf6] |-->hello2
+[0314baf6] |<--hello2 time=2ms
+[0314baf6] hello1 time=25ms
+```
+- 실행 로그를 보면 같은 트랜잭션ID를 유지하고 level을 통해 메서드 호출의 깊이를 표현하는 것을 확인할 수 있다.
