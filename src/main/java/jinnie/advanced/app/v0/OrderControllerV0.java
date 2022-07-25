@@ -1,4 +1,4 @@
-package jinnie.advanced.v0;
+package jinnie.advanced.app.v0;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class OrderControllerV0 {
 
-    private final OrderService orderService;
+    private final OrderServiceV0 orderService;
 
     @GetMapping("/v0/request")
     private String request(String itemId){

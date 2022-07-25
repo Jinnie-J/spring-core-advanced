@@ -1,4 +1,4 @@
-package jinnie.advanced.v0;
+package jinnie.advanced.app.v0;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;

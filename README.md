@@ -95,5 +95,21 @@
   - TraceStatus, Exception 정보를 함께 전달 받아서 실행시간, 예외 정보를 포함한 결과 로그를 출력한다.
   - 예외가 발생했을 때 호출한다.
   
-
-  
+- 비공개 메서드
+  - complete(TraceStatus status, Exception e)
+    - end(), exception()의 요청 흐름을 한곳에서 편리하게 처리한다. 실행 시간을 측정하고 로그를 남긴다.
+  - String addSpace(String prefix, int level): 다음과 같은 결과를 출력한다.
+    ```
+    prefix: -->
+      level 0:
+      level 1: |-->
+      level 2: | |-->
+    prefix: <--
+      level 0:
+      level 1: |<--
+      level 2: | |<--
+    prefix: <X-
+      level 0:
+      level 1: |<X-
+      level 2: | |<X-
+    ```
