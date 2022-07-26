@@ -179,3 +179,44 @@ try , catch 블록 모두에 이 값을 넘겨야한다. 따라서 try 상위에
   - 만약 인터페이스가 있다면 인터페이스까지 모두 고쳐야 하는 상황이다.
 - 로그를 처음 시작할 때는 begin()을 호출하고, 처음이 아닐 때는 beginSync()를 호출해야 한다.
   - 만약에 컨트롤러를 통해서 서비스를 호출하는 것이 아니라, 다른 곳에서 서비스를 처음으로 호출하는 상황이라면 넘길 TraceId가 없다.
+  
+### 필드 동기화 - 개발
+- 앞서 로그 추적기를 만들면서 다음 로그를 출력할 때 트랜잭션ID와 level을 동기화 하는 문제가 있다. 이 문제를 해결하기 위해 TraceId를 파라미터로 넘기도록 구현했다. 이렇게 해서 동기화는 성공했지만, 로그를 출력하는 모든 메서드에 TraceId 파라미터를 추가해야 하는 문제가 발생했다.
+- 이런 문제를 해결할 목적으로, 향후 다양한 구현체로 변경할 수 있도록 LogTrace 인터페이스를 먼저 만들고, 구현해보자.
+
+#### FieldLogTrace
+- 파라미터를 넘기지 않고 TraceId를 동기화 할 수 있는 구현체를 만들어보자.
+- TraceId를 동기화 하는 부분만 파라미터를 사용하는 것에서 TraceId traceHolder 필드를 사용하도록 변경되었다.
+- 직전 로그의 TraceId는 파라미터로 전달되는 것이 아니라 FieldLogTrace의 필드인 traceIdHolder에 저장된다.
+- syncTraceId()
+  - TraceId를 새로 만들거나 앞선 로그의 TraceId를 참고해서 동기화하고, level도 증가한다.
+  - 최초 호출이면 TraceId를 새로 만든다.
+  - 직전 로그가 있으면 해당 로그의 TraceId를 참고해서 동기화하고, level도 하나 증가한다.
+  - 결과를 traceHolder에 보관한다.
+- releaseTraceId()
+  - 메서드를 추가로 호출할 때는 level이 하나 증가해야 하지만, 메서드 호출이 끝나면 level이 하나 감소해야 한다.
+  - releaseTraceId()는 level을 하나 감소한다.
+  - 만약 최초 호출(levle==0)이면 내부에서 관리하는 traceId를 제거한다.
+    ```
+    [c80f5dbb] OrderController.request() //syncTraceId(): 최초 호출 level=0
+    [c80f5dbb] |-->OrderService.orderItem() //syncTraceId(): 직전 로그 있음 level=1 증가
+    [c80f5dbb] | |-->OrderRepository.save() //syncTraceId(): 직전 로그 있음 level=2 증가
+    [c80f5dbb] | |<--OrderRepository.save() time=1005ms //releaseTraceId(): level=2->1 감소
+    [c80f5dbb] |<--OrderService.orderItem() time=1014ms //releaseTraceId(): level=1->0 감소
+    [c80f5dbb] OrderController.request() time=1017ms //releaseTraceId(): level==0, traceId 제거
+    ```
+- 실행 결과를 보면 트랜잭션ID 도 동일하게 나오고, level 을 통한 깊이도 잘 표현된다.
+- FieldLogTrace.traceIdHolder 필드를 사용해서 TraceId가 잘 동기화 되는 것을 확인할 수 있다. 이제 불필요하게 TraceId를 파라미터로 전달하지 않아도 되고, 애플리케이션의 메서드 파라미터도 변경하지 않아도 된다.
+
+### 필드 동기화 - 적용
+- LogTrace 스프링 빈 등록
+  - FieldLogTrace를 수동으로 스프링 빈으로 등록하자. 수동으로 등록하면 향후 구현체를 편리하게 변경할 수 있다는 장점이 있다.
+  ```
+  [f8477cfc] OrderController.request()
+  [f8477cfc] |-->OrderService.orderItem()
+  [f8477cfc] | |-->OrderRepository.save()
+  [f8477cfc] | |<--OrderRepository.save() time=1004ms
+  [f8477cfc] |<--OrderService.orderItem() time=1006ms
+  [f8477cfc] OrderController.request() time=1007ms
+  ```
+- 파라미터 추가 없는 깔끔한 로그 추적기를 완성했다. 이제 실제 서비스에 배포한다고 가정해보자.
