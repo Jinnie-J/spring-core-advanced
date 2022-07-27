@@ -180,6 +180,8 @@ try , catch 블록 모두에 이 값을 넘겨야한다. 따라서 try 상위에
 - 로그를 처음 시작할 때는 begin()을 호출하고, 처음이 아닐 때는 beginSync()를 호출해야 한다.
   - 만약에 컨트롤러를 통해서 서비스를 호출하는 것이 아니라, 다른 곳에서 서비스를 처음으로 호출하는 상황이라면 넘길 TraceId가 없다.
   
+## 쓰레드 로컬 - ThreadLocal
+
 ### 필드 동기화 - 개발
 - 앞서 로그 추적기를 만들면서 다음 로그를 출력할 때 트랜잭션ID와 level을 동기화 하는 문제가 있다. 이 문제를 해결하기 위해 TraceId를 파라미터로 넘기도록 구현했다. 이렇게 해서 동기화는 성공했지만, 로그를 출력하는 모든 메서드에 TraceId 파라미터를 추가해야 하는 문제가 발생했다.
 - 이런 문제를 해결할 목적으로, 향후 다양한 구현체로 변경할 수 있도록 LogTrace 인터페이스를 먼저 만들고, 구현해보자.
@@ -220,3 +222,26 @@ try , catch 블록 모두에 이 값을 넘겨야한다. 따라서 try 상위에
   [f8477cfc] OrderController.request() time=1007ms
   ```
 - 파라미터 추가 없는 깔끔한 로그 추적기를 완성했다. 이제 실제 서비스에 배포한다고 가정해보자.
+
+### 필드 동기화 - 동시성 문제
+- 테스트 할 때는 문제가 없는 것 처럼 보인 FieldLogTrace는 심각한 동시성 문제를 가지고 있다.
+  ```
+  [nio-8080-exec-3] [aaaaaaaa] OrderController.request()
+  [nio-8080-exec-3] [aaaaaaaa] |-->OrderService.orderItem()
+  [nio-8080-exec-3] [aaaaaaaa] | |-->OrderRepository.save()
+  [nio-8080-exec-4] [aaaaaaaa] | | |-->OrderController.request()
+  [nio-8080-exec-4] [aaaaaaaa] | | | |-->OrderService.orderItem()
+  [nio-8080-exec-4] [aaaaaaaa] | | | | |-->OrderRepository.save()
+  [nio-8080-exec-3] [aaaaaaaa] | |<--OrderRepository.save() time=1005ms
+  [nio-8080-exec-3] [aaaaaaaa] |<--OrderService.orderItem() time=1005ms
+  [nio-8080-exec-3] [aaaaaaaa] OrderController.request() time=1005ms
+  [nio-8080-exec-4] [aaaaaaaa] | | | | |<--OrderRepository.save()
+  time=1005ms
+  [nio-8080-exec-4] [aaaaaaaa] | | | |<--OrderService.orderItem()
+  time=1005ms
+  [nio-8080-exec-4] [aaaaaaaa] | | |<--OrderController.request() time=1005ms
+  ```
+- 동시에 여러 사용자가 요청하면 여러 쓰레드가 동시에 애플리케이션 로직을 호출하게 된다. 따라서 로그는 이렇게 섞여서 출력된다.
+
+#### 동시성 문제
+- FieldLogTrace는 싱글톤으로 등록된 스프링 빈이다. 이 객체의 인스턴스가 애플리케이션에 딱 1개 존재한다는 뜻이다. 이렇게 하나만 있는 인스턴스의 FieldLogTrace.traceHolder 필드를 여러 쓰레드가 동시에 접근하기 때문에 문제가 발생한다.
