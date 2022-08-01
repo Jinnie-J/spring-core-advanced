@@ -323,6 +323,39 @@ try , catch 블록 모두에 이 값을 넘겨야한다. 따라서 try 상위에
   
 - 쓰레드 로컬 덕분에 쓰레드 마다 각각 별도의 데이터 저장소를 가지게 되었다. 결과적으로 동시성 문제도 해결되었다.
 
+### 쓰레드 로컬 동기화 - 개발
+- FieldLogTrace에서 발생했던 동시성 문제를 ThreadLocal로 해결해보자. TraceId traceIdHolder 필드를 쓰레드 로컬을 사용하도록 ThreadLocal<TraceId> traceIdHolder로 변경하면 된다.
+- 필드 대신에 쓰레드 로컬을 사용해서 데이터를 동기화하는 ThreadLocalLogTrace를 새로 만들자.
 
+#### ThreadLocal.remove()
+- 추가로 쓰레드 로컬을 모두 사용하고 나면 꼭 ThreadLocal.remove()를 호출해서 쓰레드 로컬에 저장된 값을 제거해주어야 한다.
+- traceId.isFirsLevel() (level==0)인 경우 ThreadLocal.remove()를 호출해서 쓰레드 로컬에 저장된 값을 제거해준다.
 
+### 쓰레드 로컬 - 주의사항
+- 쓰레드 로컬의 값을 사용 후 제거하지 않고 그냥 두면 WAS(톰캣)처럼 쓰레드 툴을 사용하는 경우에 심각한 문제가 발생할 수 있다.
 
+#### 사용자A 저장 요청
+![thread1](https://user-images.githubusercontent.com/62706198/182196919-e2336593-bda3-456e-b633-7ae254547b5d.JPG)
+1. 사용자A가 저장 HTTP를 요청했다.
+2. WAS는 쓰레드 풀에서 쓰레드를 하나 조회한다.
+3. 쓰레드 thread-A가 할당되었따.
+4. thread-A는 사용자A의 데이터를 쓰레드 로컬에 저장한다.
+5. 쓰레드 로컬의 thread-A 전용 보관소에 사용자A 데이터를 보관한다.
+
+#### 사용자A 저장 요청 종료
+![thread2](https://user-images.githubusercontent.com/62706198/182197002-6b2aa73c-779f-4ab7-84cc-23d4528973a3.JPG)
+1. 사용자A의 HTTP응답이 끝난다.
+2. WAS는 사용이 끝난 thread-A를 쓰레드 풀에 반환한다. 쓰레드를 생성하는 비용은 비싸기 때문에 쓰레드를 제거하지 않고, 보통 쓰레드 풀을 통해서 쓰레드를 재사용한다.
+3. thread-A는 쓰레드풀에 아직 살아있다. 따라서 쓰레드 로컬의 thread-A 전용 보관소에 사용자A 데이터도 함께 살아있게 된다.
+
+#### 사용자B 조회 요청
+![thread3](https://user-images.githubusercontent.com/62706198/182197074-6b8e79d2-8807-4fe8-b19b-bb0059e8a06c.JPG)
+1. 사용자B가 조회를 위한 새로운 HTTP 요청을 한다.
+2. WAS는 쓰레드 풀에서 쓰레드를 하나 조회한다.
+3. 쓰레드 thread-A가 할당되었다. (물론 다른 쓰레드가 할당될 수도 있다.)
+4. 이번에는 조회하는 요청이다. thread-A는 쓰레드 로콜에서 데이터를 조회한다.
+5. 쓰레드 로컬은 thrad-A 전용 보관소에 있는 사용자A값을 반환한다.
+6. 결과적으로 사용자A 값이 반환된다.
+7. 사용자B는 사용자A의 정보를 조회하게 된다.
+
+- 결과적으로 사용자B는 사용자A의 데이터를 확인하게 되는 심각한 문제가 발생하게 된다. 이런 문제를 예방하려면 사용자A의 요청이 끝날 때 쓰레드 로컬의 값을 ThreadLocal.remove()를 통해서 꼭 제거해야 한다.
