@@ -359,3 +359,39 @@ try , catch 블록 모두에 이 값을 넘겨야한다. 따라서 try 상위에
 7. 사용자B는 사용자A의 정보를 조회하게 된다.
 
 - 결과적으로 사용자B는 사용자A의 데이터를 확인하게 되는 심각한 문제가 발생하게 된다. 이런 문제를 예방하려면 사용자A의 요청이 끝날 때 쓰레드 로컬의 값을 ThreadLocal.remove()를 통해서 꼭 제거해야 한다.
+
+## 템플릿 메서드 패턴과 콜백 패턴
+### 템플릿 메서드 패턴 - 시작
+#### 핵심 기능 vs 부가 기능
+- 핵심 기느은 해당 객체가 제공하는 고유의 기능이다. 예를 들어서 orderService의 핵심 기능은 주문 로직이다. 메서드 단위로 보면 orderService.orderItem()의 핵심 기능은 주문 데이터를 저장하기 위해 리포지토리를 호출하는 orderRepository.save(itemId)코드가 핵심 기능이다.
+- 부가 기능은 핵심 기능을 보조하기 위해 제공되는 기능이다. 예를 들어서 로그 추적 로직, 트랜잭션 기능이 있다. 이러한 부가 기능은 단독으로 사용되지는 않고, 핵심 기능과 함께 사용된다. 예를 들어서 로그 추적기능은 어떤 핵심 기능이 호출되었는지 로그를 남기기 위해 사용한다. 그러니까 핵심 기능을 보조하기 위해 존재한다.
+
+#### 변하는 것과 변하지 않는 것을 분리
+- 좋은 설계는 변하는 것과 변하지 않는 것을 분리하는 것이다.
+- 여기서 핵심 기능 부분은 변하고, 로그 추적기를 사용하는 부분은 변하지 않는 부분이다. 이 둘을 분리해서 모듈화해야 한다.
+- 템플릿 메서드 패턴(Template Method Pattern)은 이런 문제를 해결하는 디자인 패턴이다.
+
+### 템플릿 메서드 패턴 - 예제1
+```java
+private void logic1() {
+   long startTime = System.currentTimeMillis();
+   //비즈니스 로직 실행
+   log.info("비즈니스 로직1 실행");
+   //비즈니스 로직 종료
+   long endTime = System.currentTimeMillis();
+   long resultTime = endTime - startTime;
+   log.info("resultTime={}", resultTime);
+ }
+ private void logic2(){
+    long startTime=System.currentTimeMillis();
+    //비즈니스 로직 실행
+    log.info("비즈니스 로직2 실행");
+    //비즈니스 로직 종료
+    long endTime=System.currentTimeMillis();
+    long resultTime=endTime-startTime;
+    log.info("resultTime={}",resultTime);
+  }
+```
+- 변하는 부분: 비즈니스 로직
+- 변하지 않는 부분: 시간 측정
+- 템플릿 메서드 패턴을 사용해서 변하는 부분과 변하지 않는 부분을 분리해보자.
