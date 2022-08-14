@@ -1,4 +1,4 @@
-package jinnie.advanced.trace.strategy.code.Strategy;
+package jinnie.advanced.trace.strategy.code.strategy;
 
 import lombok.extern.slf4j.Slf4j;
 

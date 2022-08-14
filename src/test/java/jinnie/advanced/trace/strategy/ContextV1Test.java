@@ -1,9 +1,9 @@
 package jinnie.advanced.trace.strategy;
 
-import jinnie.advanced.trace.strategy.code.Strategy.ContextV1;
-import jinnie.advanced.trace.strategy.code.Strategy.Strategy;
-import jinnie.advanced.trace.strategy.code.Strategy.StrategyLogic1;
-import jinnie.advanced.trace.strategy.code.Strategy.StrategyLogic2;
+import jinnie.advanced.trace.strategy.code.strategy.ContextV1;
+import jinnie.advanced.trace.strategy.code.strategy.Strategy;
+import jinnie.advanced.trace.strategy.code.strategy.StrategyLogic1;
+import jinnie.advanced.trace.strategy.code.strategy.StrategyLogic2;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 @Slf4j
