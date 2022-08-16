@@ -522,3 +522,19 @@ private void logic1() {
 - 스프링에서는 JdbcTemplate, RestTemplate, TransactionTemplate, RedisTemplate 처럼 다양한 템플릿 콜백 패턴이 사용된다. 스프링에서 이름에 XxxTemplate가 있다면 템플릿 콜백 패턴으로 만들어져 있다 생각하면 된다.
   ![callback](https://user-images.githubusercontent.com/62706198/184541490-0c8116be-65f8-4e97-91f3-72c409650fa8.JPG)
   
+### 템플릿 콜백 패턴 - 적용
+
+- TraceCallback 인터페이스
+  - 콜백을 전달하는 인터페이스이다.
+  - <T> 제네릭을 사용했다. 콜백의 반환 타입을 정의한다.
+- TraceTemplate
+  - TraceTemplate는 템플릿 역할을 한다.
+  - execute(..)를 보면 message 데이터와 콜백인 TraceCallback callback을 전달 받는다.
+  - <T> 제네릭을 사용했다. 반환 타입을 정의한다.
+- OrderControllerV5
+  - this.template = new TraceTemplate(trace): trace 의존관계 주입을 받으면서 필요한 TraceTemplate 템플릿을 생성한다. 참고로 TraceTemplate를 처음부터 스프링 빈으로 등록하고 주입받아도 된다. 이부분은 선택이다.
+  - template.execute(.., new TraceCallback(){..}): 템플릿을 실행하면서 콜백을 전달한다. 여기서는 콜백으로 익명 내부 클래스를 사용했다.
+- OrderService
+  - template.execute(.., new TraceCallBack(){..}): 템플릿을 실행하면서 콜백을 전달한다. 여기서는 콜백으로 람다를 전달했다.
+  
+  
