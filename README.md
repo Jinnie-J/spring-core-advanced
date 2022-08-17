@@ -537,4 +537,25 @@ private void logic1() {
 - OrderService
   - template.execute(.., new TraceCallBack(){..}): 템플릿을 실행하면서 콜백을 전달한다. 여기서는 콜백으로 람다를 전달했다.
   
+## 프록시 패턴과 데코레이터 패턴
+### 예제 프로젝트 만들기 v1
+#### 예제는 크게 3가지 상황으로 만든다.
+- v1 - 인터페이스와 구현 클래스 - 스프링 빈으로 수동 등록
+- v2 - 인터페이스 없는 구체 클래스 - 스프링 빈으로 수동 등록
+- v3 - 컴포넌트 스캔으로 스프링 빈 자동 등록
+
+실무에서는 스프링 빈으로 등록할 클래스는 인터페이스가 있는 경우도 있고 없는 경우도 있다. 그리고 스프링 빈을 수동으로 직접 등록하는 경우도 있고, 컴포넌트 스캔으로 자동으로 등록하는 경우도 있다. 이런 다양한 케이스에 프록시를 어떻게 적용하는지 알아보기 위해 다양한 예제를 준비해보자.
+
+#### v1 - 인터페이스와 구현 클래스 - 스프링 빈으로 수동 등록
+- 지금까지 보아왔던 Controller, Service, Repository에 인터페이스를 도입하고, 스프링 빈으로 수동 등록해보자.
+
+- OrderControllerV1
+  - @RequestMapping: 스프링MVC는 타입에 @Coontroller 또는 @RequestMapping 애노테이션이 있어야 스프링 컨트롤러로 인식한다. 그리고 스프링 컨트롤러로 인식해야, HTTP URL이 매핑되고 동작한다. 이 애노테이션은 인터페이스에 사용해도 된다.
+  - @ResponseBody: HTTP 메시지 컨버터를 사용해서 응답한다. 이 애노테이션은 인터페이스에 사용해도 된다.
+  - @RequestParam("itemId") String itemId: 인터페이스에는 @RequestParam("itemId")의 값을 생략하면 itemId 단어를 컴파일 이후 자바 버전에 따라 인식하지 못할 수 있다. 인터페이스에서는 꼭 넣어주자. 클래스는 생략해도 대부분 잘 지원된다.
+  - 코드를 보면 request(), noLog() 두 가지 메서드가 있다. request()는 LogTrace를 적용할 대상이고, noLog()는 단순히 LogTrace를 적용하지 않을 대상이다.
+
+- ProxyApplication
+  - @Import(AppV1Config.class): 클래스를 스프링 빈으로 등록한다. 여기서는 AppV1Config.class를 스프링 빈으로 등록한다. 일반적으로 @Configuration같은 설정 파일을 등록할 때 사용하지만, 스프링 빈을 등록할 때도 사용할 수 있다.
+  - @SpringBootApplication(scanBasePackages = "hello.proxy.app"): @ComponentScan의 기능과 같다. 컴포넌트 스캔을 시작할 위치를 지정한다. 이 값을 설정하면 해당 패키지와 그 하위 패키지를 컴포넌트 스캔한다. 이 값을 사용하지 않으면 ProxyApplication이 있는 패키지와 그 하위 패키지를 스캔한다.
   
