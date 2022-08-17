@@ -559,3 +559,16 @@ private void logic1() {
   - @Import(AppV1Config.class): 클래스를 스프링 빈으로 등록한다. 여기서는 AppV1Config.class를 스프링 빈으로 등록한다. 일반적으로 @Configuration같은 설정 파일을 등록할 때 사용하지만, 스프링 빈을 등록할 때도 사용할 수 있다.
   - @SpringBootApplication(scanBasePackages = "hello.proxy.app"): @ComponentScan의 기능과 같다. 컴포넌트 스캔을 시작할 위치를 지정한다. 이 값을 설정하면 해당 패키지와 그 하위 패키지를 컴포넌트 스캔한다. 이 값을 사용하지 않으면 ProxyApplication이 있는 패키지와 그 하위 패키지를 스캔한다.
   
+
+### 예제 프로젝트 만들기 v2
+
+#### v2 - 인터페이스 없는 구체 클래스 - 스프링 빈으로 수동 등록
+- 이번에는 인터페이스가 없는 Controller, Service, Repository를 스프링 빈으로 수동 등록해보자.
+- OrderControllerV2
+  - @RequestMapping: 여기서는 @Controller를 사용하지 않고, @RequestMapping 애노테이션을 사용했다. 그 이유는 @Controller를 사용하면 자동 컴포넌트 스캔의 대상이 되기 때문이다. 여기서는 컴포넌트 스캔을 통한 자동 빈 등록이 아니라 수동 빈 등록을 하는 것이 목표다. 따라서 컴포넌트 스캔과 관계 없는 @RequestMapping를 타입에 사용했다.
+  
+### 예제 프로젝트 만들기 v3
+#### v3 - 컴포넌트 스캔으로 스프링 빈 자동 등록
+- OrderControllerV3
+  - ProxyApplication에서 @SpringBootApplication(scanBasePackages = "hello.proxy.app")를 사용했고, 각각 @RestController, @service, @Repository 애노테이션을 가지고 있기 때문에 컴포넌트 스캔의 대상이 된다.
+  
