@@ -582,7 +582,7 @@ private void logic1() {
 - 이 개념을 객체에 도입하면, 요청하는 객체는 클라이언트가 되고, 요청을 처리하는 객체는 서버가 된다.
 
 #### 직접 호출과 간접 호출
-- 클라이언트와 서버 개념에서 일반적으로 클라이언트가 서버를 직접 호출하고, 처리 결과를 직접 받는다. 이것을 직접 호출이라 한다.
+- 클라이언트와 서버 개념에서 일반적으로 클라이언트가 서버를 직접 호출하고, 처리 결과를 직접 받는다. 이것을 직접 호출이라 한다.   
 ![client2](https://user-images.githubusercontent.com/62706198/188343304-a061657f-912b-4ec3-a9ed-a1d6b3db2584.PNG)
 - 그런데 클라이언트가 요청한 결과를 서버에 직접 요청하는 것이 아니라 어떤 대리자를 통해서 대신 간접적으로 서버에 요청할 수 있다. 예를 들어서 내가 직접 마트에서 장을 볼 수도 있지만, 누군가에게 대신 장을 봐달라고 부탁할 수도 있다. 여기서 대신 장을 보는 대리자를 영어로 프록시(Proxy)라 한다.
 ![proxy](https://user-images.githubusercontent.com/62706198/188343326-121a42f2-f02d-4180-9bd6-bb195cb7ff7b.PNG)
@@ -661,7 +661,7 @@ private void logic1() {
 - 프록시 패턴 적용 후 - 클래스 의존 관계
   ```
   Client ->  Subject    
-            opertion()
+            operation()
               ↗    ↖
          Proxy     RealSubject
       operation()   operation()
@@ -689,3 +689,101 @@ private void logic1() {
 
 #### 정리
 - 프록시 패턴의 핵심은 RealSubject와 클라이언트 코드를 전혀 변경하지 않고, 프록시를 도입해서 접근 제어를 했다는 점이다. 그리고 클라이언트 코드의 변경 없이 자유롭게 프록시를 넣고 뺄 수 있다. 실제 클라이언트 입장에서는 프록시 객체가 주입되었는지, 실제 객체가 주입되었는지 알지 못한다.
+
+### 데코레이터 패턴 - 예제 코드1
+- 데코레이터 패턴 적용 전 - 클래스 의존 관계
+  ```
+  Client ---> Component  <- RealComponent
+             operation()     operation()
+  ```
+- 데코레이터 패턴 적용 전 - 런타임 객체 의존 관계
+  ```
+  Client ---------> realComponent
+         operation()
+  ```
+
+#### RealComponent
+- RealComponent는 Component 인터페이스를 구현한다.
+- operation(): 단순히 로그를 남기고 "data"문자를 반환한다.
+
+#### DecoratorPatternClient
+- 클라이언트 코드는 단순히 Component 인터페이스를 의존한다.
+- execute()를 실행하면 component.operation()을 호출하고, 그 결과를 출력한다.
+
+#### DecoratorPatternTest
+- 테스트코드는 client -> realComponent의 의존관계를 설정하고, client.execute()를 호출한다.
+
+### 데코레이터 패턴 - 예제 코드2
+#### 부가 기능 추가
+- 프록시를 통해서 할 수 있는 기능은 크게 접근 제어와 부가 기능 추가라는 2가지로 구분한다. 앞서 프록시 패턴에서 캐시를 통한 접근 제어를 알아보았다. 이번에는 프록시를 활용해서 부가 기능을 추가해보자. 이렇게 프록시로 부가 기능을 추가하는 것을 데코레이터 패턴이라 한다.
+
+- 데코레이터 패턴: 원래 서버가 제공하는 기능에 더해서 부가 기능을 수행한다.
+  - 예) 요청 값이나, 응답 값을 중간에 변형한다.
+  - 예) 실행 시간을 측정해서 추가 로그를 남긴다.
+  
+#### 응답 값을 꾸며주는 데코레이터
+- 데코레이터 패턴 적용 후 - 클래스 의존 관계
+  ```
+  Client ->  Component  
+            operation()
+               ↗     ↖
+     RealComponent   MessageDecorator
+      operation()      operation()
+  ```
+- 데코레이터 패턴 적용 후 - 런타임 객체 의존 관계
+  ```
+  client  --->  Message Decorator  --->  realComponent
+       operation()              operation()
+  ```
+  
+#### MessageDecorator
+- MessageDecorator는 Component 인터페이스를 구현한다.
+- 프록시가 호출해야 하는 대상을 component에 저장한다.
+- operation()을 호출하면 프록시와 연결된 대상을 호출(component.operation())하고, 그 응답 값에 *****을 더해서 꾸며준 다음 반환한다. 예를들어서 응답 값이 data라면 다음과 같다.
+  - 꾸미기 전: data
+  - 꾸민 후: ***** data *****
+  
+#### DecoratorPatternTest
+- client -> messageDecorator -> realComponent의 객체 의존 관계를 만들고 client.execute()를 호출한다.
+
+- 실행 결과를 보면 MessageDecorator가 RealComponent를 호출하고 반환한 응답 메시지를 꾸며서 반환한 것을 알 수 있다.
+
+### 데코레이터 패턴 - 예제 코드3
+#### 실행 시간을 측정하는 데코레이터
+- 이번에는 기존 데코레이터에 더해서 실행 시간을 측정하는 기능까지 추가해보자.
+- 데코레이터 패턴 적용 후 - 클래스 의존 관계
+  ```
+  Client --------->  Component  
+                     operation()
+                 ↗        ↑      ↖
+     RealComponent  TimeDecorator  MessageDecorator
+      operation()    operation()     operation()
+  ```
+- 데코레이터 패턴 적용 후 - 런타임 객체 의존 관계
+  ```
+  client ---> time Decorator ---> message Decorator ---> realComponent
+       operation()         operation()           operation()
+  ```
+  
+#### TimeDecorator
+- TimeDecorator는 실행 시간을 측정하는 부가 기능을 제공한다. 대상을 호출하기 전에 시간을 가지고 있다가, 대상의 호출이 끝나면 호출 시간을 로그로 남겨준다.
+
+#### DecoratorPatternTest - 추가
+- client -> timeDecorator -> messageDecorator -> realComponent의 객체 의존관계를 설정하고, 실행한다.
+
+### 프록시 패턴과 데코레이터 패턴 정리
+- GOF 데코레이터 패턴
+  ![decorator](https://user-images.githubusercontent.com/62706198/189373492-0e084bba-8277-4154-a629-2e241f6f6874.JPG)
+  
+- 여기서 생각해보면 Decorator 기능에 일부 중복이 있다. 꾸며주는 역할을 하는 Decorator들은 스스로 존재할 수 없다. 항상 꾸며줄 대상이 있어야 한다. 따라서 내부에 호출 대상인 Component를 가지고 있어야 한다. 그리고 Component를 항상 호출해야 한다. 이 부분이 중복이다. 이런 중복을 제거하기 위해 component를 속성으로 가지고 있는 Decorator라는 추상 클래스를 만드는 방법도 고민할 수 있다. 이렇게 하면 추가로 클래스 다이어그램에서 어떤 것이 실제 컴포넌트 인지, 데코레이터인지 명확하게 구분할 수 있다. 여기까지 고민한 것이 바로 GOF에서 설명하는 데코레이터 패턴의 기본 예제이다.
+
+#### 프록시 패턴 vs 데코레이터 패턴
+- Decorator라는 추상 클래스를 만들어야 데코레이터 패턴일까?
+- 프록시 패턴과 데코레이터 패턴은 그 모양이 거의 비슷한 것 같은데?
+
+#### 의도(intent)
+사실 프록시 패턴과 데코레이터 패턴은 그 모양이 거의 같고, 상황에 따라 정말 똑같을 때도 있다. 그러면 둘을 어떻게 구분하는 것 일까?
+디자인 패턴에서 중요한 것은 해당 패턴의 겉모양이 아니라 그 패턴을 만든 의도가 더 중요하다. 따라서 의도에 따라 패턴을 구분한다.
+
+- 프록시 패턴의 의도: 다른 개체에 대한 접근을 제어 하기 위해 대리자를 제공
+- 데코레이터 패턴의 의도: 객체에 추가 책임(기능)을 동적으로 추가하고, 기능 확장을 위한 유연한 대안 제공
