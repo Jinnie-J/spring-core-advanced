@@ -787,3 +787,69 @@ private void logic1() {
 
 - 프록시 패턴의 의도: 다른 개체에 대한 접근을 제어 하기 위해 대리자를 제공
 - 데코레이터 패턴의 의도: 객체에 추가 책임(기능)을 동적으로 추가하고, 기능 확장을 위한 유연한 대안 제공
+
+### 인터페이스 기반 프록시 - 적용
+- 프록시를 사용하면 기존 코드를 전혀 수정하지 않고 로그 추적 기능을 도입할 수 있다.
+
+#### OrderRepositoryInterfaceProxy
+- 프록시를 만들기 위해 인터페이스를 구현한 메서드에 LogTrace를 사용하는 로직을 추가한다. 지금까지는 OrderRepositoryImpl에 이런 로직을 모두 추가해야했다. 프록시를 사용한 덕분에 이 부분을 프록시가 대신 처리해준다. 따라서 OrderRepositoryImpl 코드를 변경하지 않아도 된다.
+- OrderRepositoryV1 target: 프록시가 실제 호출할 원본 리포지토리의 참조를 가지고 있어야 한다.
+
+#### V1 프록시 런타임 객체 의존 관계 설정
+- 이제 프록시의 런타임 객체 의존 관계를 설정하면 된다. 기존에는 스프링 빈이 orderControllerV1Impl, orderServiceImpl 같은 실제 객체를 반환했다. 하지만 이제는 프록시를 사용해야한다. 따라서 프록시를 생성하고 프록시를 실제 스프링 빈 대신 등록한다. 실제 객체는 스프링 빈으로 등록하지 않는다. 
+- 프록시는 내부에 실제 객체를 참조하고 있다. 예를 들어서 OrderServieInterfaceProxy는 내부에 실제 대상 객체인 OrderServiceV1Impl을 가지고 있다.
+- 정리하면 다음과 같은 의존 관계를 가지고 있다.
+  - proxy -> target
+  - orderServiceInterfaceProxy - orderServiceV1Impl
+  
+- 스프링 빈으로 실제 객체 대신에 프록시 객체를 등록했기 때문에 앞으로 스프링 빈을 주입 받으면 실제 객체 대신에 프록시 객체가 주입된다.
+- 실제 객체가 스프링 빈으로 등록되지 않는다고 해서 사라지는 것은 아니다. 프록시 객체가 실제 객체를 참조하기 때문에 프록시를 통해서 실제 객체를 호출할 수 있다. 쉽게 이야기해서 프록시 객체 안에 실제 객체가 있는 것이다.
+  ![proxy1](https://user-images.githubusercontent.com/62706198/191037266-b146121d-a797-4ef8-a1cd-5870fac9fcba.JPG)
+  - 실제 객체가 스프링 빈으로 등록된다. 빈 객체의 마지막에 @x0.. 라고 해둔 것은 인스턴스라는 뜻이다.
+  
+  ![proxy2](https://user-images.githubusercontent.com/62706198/191037328-d98c9e0d-8fed-4be2-979f-e0d0fc8fc810.JPG)
+  - 스프링 컨테이너에 프록시 객체가 등록된다. 스프링 컨테이너는 이제 실제 객체가 아니라 프록시 객체를 스프링 빈으로 관리한다.
+  - 이제 실제 객체는 스프링 컨테이너와는 상관이 없다. 실제 객체는 프록시 객체를 통해서 참조될 뿐이다.
+  - 프록시 객체는 스프링 컨테이너가 관리하고 자바 힙 메모리에도 올라간다. 반면에 실제 객체는 자바 힙 메모리에는 올라가지만 스프링 컨테이너가 관리하지는 않는다.
+  
+### 구체 클래스 기반 프록시 - 예제1
+- 구체 클래스에 프록시를 적용하는 방법
+  ```
+  클래스 의존 관계 - 프록시 도입 전
+  Client ---------> ConcreteLogic
+                     operation()
+  
+  런타임 객체 의존 관계 - 프록시 도입 전
+  client ---------> concreteLogic
+         operation()
+  ```
+  
+### 구체 클래스 기반 프록시 - 예제2
+#### 클래스 기반 프록시 도입
+- 지금까지 인터페이스를 기반으로 프록시를 도입했다. 그런데 자바의 다형성은 인터페이스를 구현하든, 아니면 클래스를 상속하든 상위 타입만 맞으면 다형성이 적용된다. 쉽게 이야기해서 인터페이스가 없어도 프록시를 만들 수 있다는 뜻이다. 그래서 이번에는 인터페이스가 아니라 클래스를 기반으로 상속을 받아서 프록시를 만들어보겠다.
+  ```
+  클래스 의존 관계 - 프록시 도입 후
+  Client ---------> ConcreteLogic
+                    operation()
+                         ↑
+                     TimeProxy
+                    operation()
+  
+  런타임 객체 의존 관계 - 프록시 도입 후
+  client ---------> timeProxy ----------> concreteLogic
+        operation()           operation()
+  ```
+  
+#### TimeProxy
+- TimeProxy 프록시는 시간을 측정하는 부가 기능을 제공한다. 그리고 인터페이스가 아니라 클래스인 ConcreteLogic를 상속 받아서 만든다.
+
+#### ConcreteProxyTest - addProxy() 추가
+- 여기서 핵심은 ConcreteClient의 생성자에 concreteLoric이 아니라 timeProxy를 주입하는 부분이다.
+- ConcreteClient는 ConcreteLogic을 의존하는데, 다형성에 의해 ConcreteLogic에 concreteLogic도 들어갈 수 있고, timeProxy도 들어갈 수 있다.
+
+#### ConcreteLogic에 할당할 수 있는 객체
+- ConcreteLogic = concreteLogic (본인과 같은 타입을 할당)
+- ConcreteLogic = timeProxy (자식 타입을 할당)
+
+#### 참고
+- 자바 언어에서 다형성은 인터페이스나 클래스를 구분하지 않고 모두 적용된다. 해당 타입과 그 타입의 하위 타입은 모두 다형성의 대상이 된다. 인터페이스가 없어도 프록시가 가능하다.
