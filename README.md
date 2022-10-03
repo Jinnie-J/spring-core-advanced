@@ -968,3 +968,18 @@ TimeProxy 프록시는 시간을 측정하는 부가 기능을 제공한다. 그
   ![before](https://user-images.githubusercontent.com/62706198/193291395-b70b70ac-6ca9-42a8-b7e1-d53e2c201bc8.JPG)
 - JDK 동적 프록시 도입 후
   ![after](https://user-images.githubusercontent.com/62706198/193291290-b45932e5-1c3f-4452-90be-c1771c881452.JPG)
+  
+### JDK 동적 프록시 - 적용1
+
+### LogTraceBasicHandler
+- LogTraceBasicHandler는 InvocationHandler 인터페이스를 구현해서 JDK 동적 프록시에서 사용된다.
+- private final Object target: 프록시가 호출할 대상이다.
+- String message = method.getDeclaringClass().geSimpleName() + "." ...
+    - LogTrace에 사용할 메시지이다. 프록시를 직접 개발할 때는 "OrderController.request()"와 같이 프록시마다 호출되는 클래스와 메서드 이름을 직접 남겼다. 이제는 Method를 통해서 호출되는 메서드 정보와 클래스 정보를 동적으로 확인할 수 있기 때문에 이 정보를 사용하면 된다.
+
+#### DynamicProxyBasicConfig
+- 이전에는 프록시 클래스를 직접 개발했지만, 이제는 JDK 동적 프록시 기술을 사용해서 각각의 Controller, Service, Repository에 맞는 동적 프록시를 생성해주면 된다.
+- LogTraceBasicHandler: 동적 프록시를 만들더라도 LogTrace를 출력하는 로직은 모두 같기 때문에 프록시는 모두 LogTracBasicHandler를 사용한다.
+- 그림으로 정리  
+  ![class](https://user-images.githubusercontent.com/62706198/193598890-0e47aefe-2d5a-4070-879d-73284cace4d7.JPG)
+  ![runtime](https://user-images.githubusercontent.com/62706198/193599007-06281f6a-8fcf-4f54-92d4-db0b5e572710.JPG)

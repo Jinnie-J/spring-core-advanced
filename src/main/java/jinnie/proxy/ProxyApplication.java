@@ -6,6 +6,7 @@ import jinnie.proxy.config.AppV1Config;
 import jinnie.proxy.config.AppV2Config;
 import jinnie.proxy.config.v1_proxy.ConcreteProxyConfig;
 import jinnie.proxy.config.v1_proxy.InterfaceProxyConfig;
+import jinnie.proxy.config.v2_dynamicproxy.DynamicProxyBasicConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -13,7 +14,8 @@ import org.springframework.context.annotation.Import;
 
 //@Import({AppV1Config.class, AppV2Config.class})
 //@Import(InterfaceProxyConfig.class)
-@Import(ConcreteProxyConfig.class)
+//@Import(ConcreteProxyConfig.class)
+@Import(DynamicProxyBasicConfig.class)
 @SpringBootApplication(scanBasePackages = "jinnie.proxy.app") //주의
 public class ProxyApplication {
 
