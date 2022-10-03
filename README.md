@@ -983,3 +983,27 @@ TimeProxy 프록시는 시간을 측정하는 부가 기능을 제공한다. 그
 - 그림으로 정리  
   ![class](https://user-images.githubusercontent.com/62706198/193598890-0e47aefe-2d5a-4070-879d-73284cace4d7.JPG)
   ![runtime](https://user-images.githubusercontent.com/62706198/193599007-06281f6a-8fcf-4f54-92d4-db0b5e572710.JPG)
+  
+
+### JDK 동적 프록시 - 적용2
+
+#### 메서드 이름 필터 기능 추가
+- 요구사항에 의해 호출 했을 때는 로그가 남으면 안된다. 이런 문제를 해결하기 위해 메서드 이름을 기준으로 특정 조건을 만족할 때만 로그를 남기는 기능을 개발해보자.
+
+#### LogTraceFilterHandler
+- LogTraceFilterHandler는 기존 기능에 다음 기능이 추가되었다.
+  - 특정 메서드 이름이 매칭 되는 경우에만 LogTrace로직을 실행한다. 이름이 매칭되지 않으면 실제 로직을 바로 호출한다.
+- 스프링이 제공하는 PatternMatchUtils.simpleMatch(..)를 사용하면 단순한 매칭 로직을 쉽게 적용할 수 있다.
+  - xxx: xxx가 정확이 매칭되면 참
+  - xxx*: xxx로 시자갛면 참
+  - *xxx: xxx로 끝나면 참
+  - *xxx*: xxx가 있으면 참
+- String[] patterns: 적용할 패턴은 생성자를 통해서 외부에서 받는다.  
+
+#### DynamicProxyFilterConfig
+- public static final String[] PATTERNS = {"request*", "order*", "save*"};
+  - 적용할 패턴이다. request, order, save로 시작한ㄴ 메서드에 로그가 남는다.
+- LogTraceFilterHandler: 앞서 만든 필터 기능이 있는 핸들러를 사용한다. 그리고 핸들러에 적용 패턴도 넣어준다.
+
+#### JDK 동적 프록시 - 한계
+- JDK 동적 프록시는 인터페이스가 필수이다. 그렇다면 인터페이스 없이 클래스만 있는 경우에는 어떻게 동적 프록시를 적용할 수 있을까? 이것은 일반적인 방법으로는 어렵고 CGLIB라는 바이트코드를 조작하는 특별한 라이브러리를 사용해야한다.
