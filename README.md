@@ -1007,3 +1007,61 @@ TimeProxy 프록시는 시간을 측정하는 부가 기능을 제공한다. 그
 
 #### JDK 동적 프록시 - 한계
 - JDK 동적 프록시는 인터페이스가 필수이다. 그렇다면 인터페이스 없이 클래스만 있는 경우에는 어떻게 동적 프록시를 적용할 수 있을까? 이것은 일반적인 방법으로는 어렵고 CGLIB라는 바이트코드를 조작하는 특별한 라이브러리를 사용해야한다.
+
+
+
+### CGLIB - 소개
+#### CGLIB: Code Generator Library
+- CGLIB는 바이트코드를 조작해서 동적으로 클래스를 생성하는 기술을 제공하는 라이브러리이다.
+- CGLIB를 사용하면 인터페이스가 없어도 구체 클래스만 가지고 동적 프록시를 만들어낼 수 있다.
+- CGLIB는 원래는 외부 라이브러리인데, 스프링 프레임워크가 스프링 내부 소스 코드에 포함했다. 따라서
+  스프링을 사용한다면 별도의 외부 라이브러리를 추가하지 않아도 사용할 수 있다.
+  
+- 참고로 우리가 CGLIB를 직접 사용하는 경우는 거의 없다. 이후에 설명할 스프링의 ProxyFactory 라는
+  것이 이 기술을 편리하게 사용하게 해준다.
+  
+#### 공통 예제 코드
+- 인터페이스와 구현이 있는 서비스 클래스 - ServiceInterface, ServiceImpl
+- 구체 클래스만 있는 서비스 클래스 - ConcreteService
+
+
+### CGLIB - 예제코드
+- JDK 동적 프록시에서 실행 로직을 위해 InvocationHandler 를 제공했듯이, CGLIB는 MethodInterceptor 를 제공한다.
+
+#### MethodInterceptor - CGLIB 제공
+```java
+package org.springframework.cglib.proxy;
+public interface MethodInterceptor extends Callback {
+ Object intercept(Object obj, Method method, Object[] args, MethodProxy
+proxy) throws Throwable;
+}
+```
+- obj : CGLIB가 적용된 객체
+- method : 호출된 메서드
+- args : 메서드를 호출하면서 전달된 인수
+- proxy : 메서드 호출에 사용
+
+#### TimeMethodInterceptor
+- TimeMethodInterceptor 는 MethodInterceptor 인터페이스를 구현해서 CGLIB 프록시의 실행 로직을 정의한다.
+- JDK 동적 프록시를 설명할 때 예제와 거의 같은 코드이다.
+- Object target : 프록시가 호출할 실제 대상
+- proxy.invoke(target, args) : 실제 대상을 동적으로 호출한다.
+  - 참고로 method 를 사용해도 되지만, CGLIB는 성능상 MethodProxy proxy 를 사용하는 것을 권장한다.
+  
+#### CglibTest
+- Enhancer : CGLIB는 Enhancer 를 사용해서 프록시를 생성한다.
+- enhancer.setSuperclass(ConcreteService.class) : CGLIB는 구체 클래스를 상속 받아서 프록시를 생성할 수 있다. 어떤 구체 클래스를 상속 받을지 지정한다.
+- enhancer.setCallback(new TimeMethodInterceptor(target))
+  - 프록시에 적용할 실행 로직을 할당한다.
+- enhancer.create() : 프록시를 생성한다. 앞서 설정한 enhancer.setSuperclass(ConcreteService.class) 에서 지정한 클래스를 상속 받아서 프록시가 만들어진다.
+
+- JDK 동적 프록시는 인터페이스를 구현(implement)해서 프록시를 만든다. CGLIB는 구체 클래스를 상속(extends)해서 프록시를 만든다.
+
+- 그림으로 정리
+  ![cglib](https://user-images.githubusercontent.com/62706198/193843111-fdc1131b-7d62-40fd-a1ed-94b15150ad2b.JPG)
+
+#### CGLIB 제약
+- 클래스 기반 프록시는 상속을 사용하기 때문에 몇가지 제약이 있다.
+  - 부모 클래스의 생성자를 체크해야 한다. CGLIB는 자식 클래스를 동적으로 생성하기 때문에 기본 생성자가 필요하다.
+  - 클래스에 final 키워드가 붙으면 상속이 불가능하다. CGLIB에서는 예외가 발생한다.
+  - 메서드에 final 키워드가 붙으면 해당 메서드를 오버라이딩 할 수 없다. CGLIB에서는 프록시 로직이 동작하지 않는다.
