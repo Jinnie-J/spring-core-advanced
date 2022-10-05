@@ -1065,3 +1065,20 @@ proxy) throws Throwable;
   - 부모 클래스의 생성자를 체크해야 한다. CGLIB는 자식 클래스를 동적으로 생성하기 때문에 기본 생성자가 필요하다.
   - 클래스에 final 키워드가 붙으면 상속이 불가능하다. CGLIB에서는 예외가 발생한다.
   - 메서드에 final 키워드가 붙으면 해당 메서드를 오버라이딩 할 수 없다. CGLIB에서는 프록시 로직이 동작하지 않는다.
+  
+### 스프링이 지원하는 프록시
+#### 프록시 팩토리 - 소개
+- 인터페이스가 있는 경우에는 JDK 동적 프록시를 적용하고, 그렇지 않은 경우에는 CGLIB를 적용하려면 어떻게 해야할까?
+  - 스프링은 유사한 구체적인 기술들이 있을 때, 그것들을 통합해서 일관성있게 접근할 수 있고, 더욱 편리하게 사용할 수 있는 추상화된 기술을 제공한다.
+  - 이전에는 상황에 따라서 JDK 동적 프록시를 사용하거나 CGLIB를 사용해야 했다면, 이제는 이 프록시 팩토리 하나로 편리하게 동적 프록시를 생성할 수 있다.
+  - 프록시 팩토리는 인터페이스가 있으면 JDK 동적 프록시를 사용하고, 구체 클래스만 있다면 CGLIB를 사용한다. 그리고 이 설정을 변경할 수도 있다.
+    ![proxy_factory](https://user-images.githubusercontent.com/62706198/194089044-80fa7677-9c52-4502-bc64-2004b42824fb.JPG)
+
+- 두 기술을 함께 사용할 때 부가 기능을 적용하기 위해 JDK동적 프록시가 제공하는 InvocationHandler와 CGLIB가 제공하는 MethodInterceptor를 각각 중복으로 따로 만들어야 할까?
+  - 스프링은 이 문제를 해결하기 위해 부가 기능을 적용할 때 Advice라는 새로운 개념을 도입했다. 개발자는 InvocationHandler 나 MethodInterceptor를 신경쓰지 않고, Advice만 만들면 된다.
+  - 결과적으로 InvocationHandler나 MethodInterceptor는 Advice를 호출하게 된다.
+  - 프록시 팩토리를 사용하면 Advice를 호출하는 전용 InvocationHandler, MethodInterceptor를 내부에서 사용한다.
+    ![advice](https://user-images.githubusercontent.com/62706198/194089136-9b4215ba-6d98-4ce7-aca5-9cf4d616ae71.JPG)
+- 특정 조건에 맞을 때 프록시 로직을 적용하는 기능도 공통으로 제공되었으면?
+  - 앞서 특정 메서드 이름의 조건에 맞을 때만 프록시 부가 기능이 적용되는 코드를 직접 만들었다. 스프링은 Pointcut이라는 개념을 도입해서 이 문제를 일관성 있게 해결한다.
+  
